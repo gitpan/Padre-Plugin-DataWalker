@@ -1,0 +1,25 @@
+---
+abstract: 'Simple Perl data structure browser Padre'
+author:
+  - 'Steffen Mueller <smueller@cpan.org>'
+build_requires:
+  Test::More: 0
+distribution_type: module
+generated_by: 'Module::Install version 0.80'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Padre-Plugin-DataWalker
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Padre: 0.29
+  Wx::Perl::DataWalker: 0.02
+  YAML::XS: 0
+  perl: 5.8.0
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.01
