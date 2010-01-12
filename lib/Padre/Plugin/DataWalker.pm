@@ -7,9 +7,9 @@ use strict;
 use Padre::Config ();
 use Padre::Wx     ();
 use Padre::Plugin ();
-use Padre::Util   ();
+use Padre::Util   ('_T');
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 our @ISA     = 'Padre::Plugin';
 
 =head1 NAME
@@ -86,11 +86,11 @@ sub plugin_name {
 sub menu_plugins_simple {
 	my $self = shift;
 	return $self->plugin_name => [
-		'About'                          => sub { $self->show_about },
-		'Browse YAML dump file'          => sub { $self->browse_yaml_file },
-		'Browse current document object' => sub { $self->browse_current_document },
-		'Browse Padre IDE object'        => sub { $self->browse_padre },
-		'Browse Padre main symbol table' => sub { $self->browse_padre_stash },
+		_T('About')                          => sub { $self->show_about },
+		_T('Browse YAML dump file')          => sub { $self->browse_yaml_file },
+		_T('Browse current document object') => sub { $self->browse_current_document },
+		_T('Browse Padre IDE object')        => sub { $self->browse_padre },
+		_T('Browse Padre main symbol table') => sub { $self->browse_padre_stash },
 	];
 }
 
@@ -100,13 +100,13 @@ sub browse_yaml_file {
 	my $main = Padre->ide->wx->main;
 	my $dialog = Wx::FileDialog->new(
 		$main,
-		"Open file",
+		_T('Open file'),
 		$main->cwd,
 		"",
 		"*.*",
 		Wx::wxFD_OPEN|Wx::wxFD_FILE_MUST_EXIST,
 	);
-	unless ( Padre::Util::WIN32 ) {
+	unless ( Padre::Constant::WIN32() ) {
 		$dialog->SetWildcard("*");
 	}
 
@@ -116,8 +116,8 @@ sub browse_yaml_file {
 
 	if (not (-f $file and -r $file)) {
 		Wx::MessageBox(
-			"Could not find the specified file '$file'",
-			"File not found",
+			sprintf(_T("Could not find the specified file '%s'"), $file),
+			_T('File not found'),
 			Wx::wxOK,
 			$main,
 		);
@@ -126,8 +126,8 @@ sub browse_yaml_file {
 	my $data = eval {YAML::XS::LoadFile($file)};
 	if (not defined $data or $@) {
 		Wx::MessageBox(
-			"Could not read the YAML file." . ($@ ? "\n$@" : ""),
-			"Invalid YAML file",
+			sprintf(_T("Could not read the YAML file.%s", ($@ ? "\n$@" : ""))),
+			_T('Invalid YAML file'),
 			Wx::wxOK,
 			$main,
 		);

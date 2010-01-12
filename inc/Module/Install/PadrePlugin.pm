@@ -66,13 +66,12 @@ sub install_padre_plugin {
     return;
   }
 
-  require Padre;
-  my $plugin_dir = Padre::Config->default_plugin_dir;
+  require Padre::Config::Constants;
 
   require File::Copy;
-  return File::Copy::copy($file, $plugin_dir);
+  return File::Copy::copy($file, $Padre::Config::Constants::PADRE_PLUGIN_DIR);
 }
 
 1;
 
-#line 143
+#line 142
