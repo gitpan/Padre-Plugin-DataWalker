@@ -1,4 +1,9 @@
 package Padre::Plugin::DataWalker;
+BEGIN {
+  $Padre::Plugin::DataWalker::VERSION = '0.03';
+}
+
+# ABSTRACT: Simple Perl data structure browser Padre
 
 use 5.008;
 use warnings;
@@ -7,14 +12,140 @@ use strict;
 use Padre::Config ();
 use Padre::Wx     ();
 use Padre::Plugin ();
-use Padre::Util   ('_T');
 
-our $VERSION = '0.02';
-our @ISA     = 'Padre::Plugin';
+our @ISA = 'Padre::Plugin';
+
+
+
+sub padre_interfaces {
+	'Padre::Plugin' => 0.47,;
+}
+
+sub plugin_name {
+	Wx::gettext('DataWalker');
+}
+
+sub menu_plugins_simple {
+	my $self = shift;
+	return $self->plugin_name => [
+		Wx::gettext('About')                          => sub { $self->show_about },
+		Wx::gettext('Browse YAML dump file')          => sub { $self->browse_yaml_file },
+		Wx::gettext('Browse current document object') => sub { $self->browse_current_document },
+		Wx::gettext('Browse Padre IDE object')        => sub { $self->browse_padre },
+		Wx::gettext('Browse Padre main symbol table') => sub { $self->browse_padre_stash },
+	];
+}
+
+sub browse_yaml_file {
+	my $self = shift;
+	require YAML::XS;
+	my $main   = Padre->ide->wx->main;
+	my $dialog = Wx::FileDialog->new(
+		$main,
+		Wx::gettext('Open file'),
+		$main->cwd,
+		"",
+		"*.*",
+		Wx::wxFD_OPEN | Wx::wxFD_FILE_MUST_EXIST,
+	);
+	unless ( Padre::Constant::WIN32() ) {
+		$dialog->SetWildcard("*");
+	}
+
+	return if $dialog->ShowModal == Wx::wxID_CANCEL;
+	my @filenames = $dialog->GetFilenames or return ();
+	my $file = File::Spec->catfile( $dialog->GetDirectory(), shift @filenames );
+
+	if ( not( -f $file and -r $file ) ) {
+		Wx::MessageBox(
+			sprintf( Wx::gettext("Could not find the specified file '%s'"), $file ),
+			Wx::gettext('File not found'),
+			Wx::wxOK,
+			$main,
+		);
+	}
+
+	my $data = eval { YAML::XS::LoadFile($file) };
+	if ( not defined $data or $@ ) {
+		Wx::MessageBox(
+			sprintf( Wx::gettext( "Could not read the YAML file.%s", ( $@ ? "\n$@" : "" ) ) ),
+			Wx::gettext('Invalid YAML file'),
+			Wx::wxOK,
+			$main,
+		);
+	}
+
+	$self->_data_walker($data);
+	return ();
+}
+
+sub browse_padre_stash {
+	my $self = shift;
+	$self->_data_walker( \%:: );
+	return ();
+}
+
+
+sub browse_current_document {
+	my $self = shift;
+	my $doc  = Padre::Current->document;
+	$self->_data_walker($doc);
+	return ();
+}
+
+
+sub browse_padre {
+	my $self = shift;
+	$self->_data_walker( Padre->ide );
+	return ();
+}
+
+sub _data_walker {
+	my $self = shift;
+	my $data = shift;
+	require Wx::Perl::DataWalker;
+
+	my $dialog = Wx::Perl::DataWalker->new(
+		{ data => $data },
+		undef,
+		-1,
+		"DataWalker",
+	);
+	$dialog->SetSize( 500, 500 );
+	$dialog->Show(1);
+	return ();
+}
+
+
+sub show_about {
+	my $self = shift;
+
+	# Generate the About dialog
+	my $about = Wx::AboutDialogInfo->new;
+	$about->SetName("Padre::Plugin::DataWalker");
+	$about->SetDescription( <<"END_MESSAGE" );
+Simple Perl data structure browser for Padre
+END_MESSAGE
+	$about->SetVersion($Padre::Plugin::DataWalker::VERSION);
+
+	# Show the About dialog
+	Wx::AboutBox($about);
+
+	return;
+}
+
+1;
+
+__END__
+=pod
 
 =head1 NAME
 
 Padre::Plugin::DataWalker - Simple Perl data structure browser Padre
+
+=head1 VERSION
+
+version 0.03
 
 =head1 SYNOPSIS
 
@@ -72,150 +203,26 @@ Certainly only useful for debugging Padre.
 
 =back
 
-=cut
+=head1 AUTHORS
 
+=over 4
 
-sub padre_interfaces {
-	'Padre::Plugin' => 0.24,
-}
+=item *
 
-sub plugin_name {
-	'DataWalker';
-}
+Steffen Mueller <smueller@cpan.org>
 
-sub menu_plugins_simple {
-	my $self = shift;
-	return $self->plugin_name => [
-		_T('About')                          => sub { $self->show_about },
-		_T('Browse YAML dump file')          => sub { $self->browse_yaml_file },
-		_T('Browse current document object') => sub { $self->browse_current_document },
-		_T('Browse Padre IDE object')        => sub { $self->browse_padre },
-		_T('Browse Padre main symbol table') => sub { $self->browse_padre_stash },
-	];
-}
+=item *
 
-sub browse_yaml_file {
-	my $self = shift;
-	require YAML::XS;
-	my $main = Padre->ide->wx->main;
-	my $dialog = Wx::FileDialog->new(
-		$main,
-		_T('Open file'),
-		$main->cwd,
-		"",
-		"*.*",
-		Wx::wxFD_OPEN|Wx::wxFD_FILE_MUST_EXIST,
-	);
-	unless ( Padre::Constant::WIN32() ) {
-		$dialog->SetWildcard("*");
-	}
+Ahmad M. Zawawi <ahmad.zawawi@gmail.com>
 
-	return if $dialog->ShowModal == Wx::wxID_CANCEL;
-	my @filenames = $dialog->GetFilenames or return();
-	my $file = File::Spec->catfile($dialog->GetDirectory(), shift @filenames);
+=back
 
-	if (not (-f $file and -r $file)) {
-		Wx::MessageBox(
-			sprintf(_T("Could not find the specified file '%s'"), $file),
-			_T('File not found'),
-			Wx::wxOK,
-			$main,
-		);
-	}
+=head1 COPYRIGHT AND LICENSE
 
-	my $data = eval {YAML::XS::LoadFile($file)};
-	if (not defined $data or $@) {
-		Wx::MessageBox(
-			sprintf(_T("Could not read the YAML file.%s", ($@ ? "\n$@" : ""))),
-			_T('Invalid YAML file'),
-			Wx::wxOK,
-			$main,
-		);
-	}
+This software is copyright (c) 2010 by Steffen Mueller.
 
-	$self->_data_walker($data);
-	return();
-}
-
-sub browse_padre_stash {
-	my $self = shift;
-	$self->_data_walker(\%::);
-	return();
-}
-
-
-sub browse_current_document {
-	my $self = shift;
-	my $doc = Padre::Current->document;
-	$self->_data_walker($doc);
-	return();
-}
-
-
-sub browse_padre {
-	my $self = shift;
-	$self->_data_walker(Padre->ide);
-	return();
-}
-
-sub _data_walker {
-	my $self = shift;
-	my $data = shift;
-	require Wx::Perl::DataWalker;
-        
-	my $dialog = Wx::Perl::DataWalker->new(
-		{data => $data},
-		undef,
-		-1,
-		"DataWalker",
-	);
-	$dialog->SetSize(500, 500);
-	$dialog->Show(1);
-	return();
-}
-
-
-sub show_about {
-	my $self = shift;
-
-	# Generate the About dialog
-	my $about = Wx::AboutDialogInfo->new;
-	$about->SetName("Padre::Plugin::DataWalker");
-	$about->SetDescription( <<"END_MESSAGE" );
-Simple Perl data structure browser for Padre
-END_MESSAGE
-	$about->SetVersion( $VERSION );
-
-	# Show the About dialog
-	Wx::AboutBox( $about );
-
-	return;
-}
-
-1;
-
-__END__
-
-
-=head1 AUTHOR
-
-Steffen Mueller, C<< <smueller at cpan.org> >>
-
-=head1 BUGS
-
-Please report any bugs or feature requests to L<http://padre.perlide.org/>
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright 2009 The Padre development team as listed in Padre.pm.
-all rights reserved.
-
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-# Copyright 2009 The Padre development team as listed in Padre.pm.
-# LICENSE
-# This program is free software; you can redistribute it and/or
-# modify it under the same terms as Perl 5 itself.
