@@ -1,6 +1,6 @@
 package Padre::Plugin::DataWalker;
 BEGIN {
-  $Padre::Plugin::DataWalker::VERSION = '0.03';
+  $Padre::Plugin::DataWalker::VERSION = '0.04';
 }
 
 # ABSTRACT: Simple Perl data structure browser Padre
@@ -145,7 +145,7 @@ Padre::Plugin::DataWalker - Simple Perl data structure browser Padre
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
